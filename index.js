@@ -53,6 +53,12 @@ const commands = [
   new SlashCommandBuilder()
     .setName("addfunds")
     .setDescription("Add funds to your party")
+    .addStringOption((option) =>
+      option
+        .setName("description")
+        .setDescription("Description of the transaction")
+        .setRequired(true)
+    )
     .addIntegerOption((option) =>
       option
         .setName("platinum")
@@ -73,17 +79,17 @@ const commands = [
         .setName("copper")
         .setDescription("Copper amount")
         .setRequired(false)
-    )
-    .addStringOption((option) =>
-      option
-        .setName("description")
-        .setDescription("Description of the transaction")
-        .setRequired(true)
     ),
 
   new SlashCommandBuilder()
     .setName("removefunds")
     .setDescription("Remove funds from your party")
+    .addStringOption((option) =>
+      option
+        .setName("description")
+        .setDescription("Description of the transaction")
+        .setRequired(true)
+    )
     .addIntegerOption((option) =>
       option
         .setName("platinum")
@@ -104,12 +110,6 @@ const commands = [
         .setName("copper")
         .setDescription("Copper amount")
         .setRequired(false)
-    )
-    .addStringOption((option) =>
-      option
-        .setName("description")
-        .setDescription("Description of the transaction")
-        .setRequired(true)
     ),
 
   new SlashCommandBuilder()
@@ -303,6 +303,9 @@ async function handleAddFunds(interaction) {
     );
   }
 
+  // Add Discord icon to the description
+  const discordDescription = `${description} <i class="fa-brands fa-discord"></i>`;
+
   try {
     const response = await axios.post(
       `${API_BASE_URL}/api/fund-history`,
@@ -312,7 +315,7 @@ async function handleAddFunds(interaction) {
         gold,
         silver,
         copper,
-        description,
+        description: discordDescription, // Use the modified description
         subtract: false,
         user_group_id: userData.userGroupId,
         campaign_id: userData.campaignId,
@@ -346,7 +349,6 @@ async function handleAddFunds(interaction) {
   }
 }
 
-// Handle remove funds command
 async function handleRemoveFunds(interaction) {
   await interaction.deferReply();
 
@@ -369,6 +371,9 @@ async function handleRemoveFunds(interaction) {
     );
   }
 
+  // Add Discord icon to the description
+  const discordDescription = `${description} <i class="fa-brands fa-discord"></i>`;
+
   try {
     const response = await axios.post(
       `${API_BASE_URL}/api/fund-history`,
@@ -378,7 +383,7 @@ async function handleRemoveFunds(interaction) {
         gold,
         silver,
         copper,
-        description,
+        description: discordDescription, // Use the modified description
         subtract: true,
         user_group_id: userData.userGroupId,
         campaign_id: userData.campaignId,
@@ -497,7 +502,6 @@ async function handleItems(interaction) {
   }
 }
 
-// Handle add item command
 async function handleAddItem(interaction) {
   await interaction.deferReply();
 
@@ -510,7 +514,9 @@ async function handleAddItem(interaction) {
 
   const name = interaction.options.getString("name");
   const owner = interaction.options.getString("owner");
-  const source = interaction.options.getString("source");
+  const source =
+    interaction.options.getString("source") +
+    ' <i class="fa-brands fa-discord"></i>'; // Add Discord icon
   const quantity = interaction.options.getInteger("quantity") || 1;
 
   try {
@@ -521,7 +527,7 @@ async function handleAddItem(interaction) {
         name,
         owner,
         quantity,
-        source,
+        source, // Source now includes Discord icon
         user_group_id: userData.userGroupId,
         campaign_id: userData.campaignId,
       },
@@ -537,7 +543,11 @@ async function handleAddItem(interaction) {
         .setDescription(`Successfully added ${quantity}x ${name}`)
         .addFields(
           { name: "Owner", value: owner, inline: true },
-          { name: "Source", value: source, inline: true }
+          {
+            name: "Source",
+            value: source.replace(/<i.*?<\/i>/, "[Discord]"),
+            inline: true,
+          }
         );
 
       await interaction.editReply({ embeds: [embed] });
@@ -689,8 +699,14 @@ async function handleHistory(interaction) {
         const date = new Date(entry.transaction_date);
         const formattedDate = date.toLocaleDateString();
 
+        // Use green up arrow for additions and red down arrow for subtractions
+        const icon = entry.subtract ? "🔻" : "💸";
+        const iconText = entry.subtract
+          ? `${icon} -${amountText}`
+          : `${icon} +${amountText}`;
+
         return {
-          name: entry.subtract ? `🔻 ${amountText}` : `🔺 ${amountText}`,
+          name: iconText,
           value: `${entry.description}\nDate: ${formattedDate}`,
           inline: false,
         };
