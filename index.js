@@ -31,18 +31,12 @@ const userTokens = new Map();
 // Setup commands
 const commands = [
   new SlashCommandBuilder()
-    .setName("login")
-    .setDescription("Login to your Party Loot account")
+    .setName("apilogin")
+    .setDescription("Login to your Party Loot account using API key")
     .addStringOption((option) =>
       option
-        .setName("username")
-        .setDescription("Your Party Loot username")
-        .setRequired(true)
-    )
-    .addStringOption((option) =>
-      option
-        .setName("password")
-        .setDescription("Your Party Loot password")
+        .setName("apikey")
+        .setDescription("Your Party Loot API key")
         .setRequired(true)
     ),
 
@@ -183,43 +177,57 @@ const rest = new REST({ version: "10" }).setToken(process.env.DISCORD_TOKEN);
   }
 })();
 
-// Handle login command
-async function handleLogin(interaction) {
+// Handle API key login command
+async function handleApiLogin(interaction) {
   await interaction.deferReply({ ephemeral: true });
 
-  const username = interaction.options.getString("username");
-  const password = interaction.options.getString("password");
+  const apiKey = interaction.options.getString("apikey");
 
   try {
-    const response = await axios.post(`${API_BASE_URL}/api/login`, {
-      username,
-      password,
-    });
+    // Call the new foundry authentication endpoint with the API key
+    const response = await axios.post(
+      `${API_BASE_URL}/api/discord/authenticate`,
+      {
+        apiToken: apiKey,
+      }
+    );
 
-    if (response.data.token) {
-      // Store token in memory (for this session)
+    if (response.data.success && response.data.token) {
+      // Store token and user data in memory (for this session)
       userTokens.set(interaction.user.id, {
         token: response.data.token,
-        userId: response.data.id,
-        userGroupId: response.data.user_group_id,
-        campaignId: response.data.default_campaign_id,
+        userId: response.data.userId,
+        userGroupId: response.data.userGroupId,
+        campaignId: response.data.campaignId,
+        username: response.data.username,
       });
 
+      const embed = new EmbedBuilder()
+        .setTitle("Login Successful")
+        .setColor(0x00bb00)
+        .setDescription(`Successfully logged in as ${response.data.username}!`)
+        .addFields({
+          name: "Active Campaign ID",
+          value: response.data.campaignId.toString(),
+          inline: true,
+        });
+
       await interaction.editReply({
-        content: "Successfully logged in to Party Loot!",
+        content: "Authentication successful!",
+        embeds: [embed],
         ephemeral: true,
       });
     } else {
       await interaction.editReply({
-        content: "Login failed. Please check your credentials.",
+        content: "Login failed. Please check your API key.",
         ephemeral: true,
       });
     }
   } catch (error) {
-    console.error("Login error:", error.response?.data || error.message);
+    console.error("API Login error:", error.response?.data || error.message);
     await interaction.editReply({
       content: `Login failed: ${
-        error.response?.data?.error || "Unknown error"
+        error.response?.data?.error || "Invalid API key or server error"
       }`,
       ephemeral: true,
     });
@@ -242,7 +250,7 @@ async function handleFunds(interaction) {
   const userData = getUserToken(interaction.user.id);
   if (!userData) {
     return await interaction.editReply(
-      "You must be logged in. Use `/login` first."
+      "You must be logged in. Use `/apilogin` first."
     );
   }
 
@@ -287,7 +295,7 @@ async function handleAddFunds(interaction) {
   const userData = getUserToken(interaction.user.id);
   if (!userData) {
     return await interaction.editReply(
-      "You must be logged in. Use `/login` first."
+      "You must be logged in. Use `/apilogin` first."
     );
   }
 
@@ -355,7 +363,7 @@ async function handleRemoveFunds(interaction) {
   const userData = getUserToken(interaction.user.id);
   if (!userData) {
     return await interaction.editReply(
-      "You must be logged in. Use `/login` first."
+      "You must be logged in. Use `/apilogin` first."
     );
   }
 
@@ -432,7 +440,7 @@ async function handleItems(interaction) {
   const userData = getUserToken(interaction.user.id);
   if (!userData) {
     return await interaction.editReply(
-      "You must be logged in. Use `/login` first."
+      "You must be logged in. Use `/apilogin` first."
     );
   }
 
@@ -508,7 +516,7 @@ async function handleAddItem(interaction) {
   const userData = getUserToken(interaction.user.id);
   if (!userData) {
     return await interaction.editReply(
-      "You must be logged in. Use `/login` first."
+      "You must be logged in. Use `/apilogin` first."
     );
   }
 
@@ -569,7 +577,7 @@ async function handleCampaigns(interaction) {
   const userData = getUserToken(interaction.user.id);
   if (!userData) {
     return await interaction.editReply(
-      "You must be logged in. Use `/login` first."
+      "You must be logged in. Use `/apilogin` first."
     );
   }
 
@@ -624,7 +632,7 @@ async function handleSetCampaign(interaction) {
   const userData = getUserToken(interaction.user.id);
   if (!userData) {
     return await interaction.editReply(
-      "You must be logged in. Use `/login` first."
+      "You must be logged in. Use `/apilogin` first."
     );
   }
 
@@ -672,7 +680,7 @@ async function handleHistory(interaction) {
   const userData = getUserToken(interaction.user.id);
   if (!userData) {
     return await interaction.editReply(
-      "You must be logged in. Use `/login` first."
+      "You must be logged in. Use `/apilogin` first."
     );
   }
 
@@ -738,8 +746,8 @@ client.on("interactionCreate", async (interaction) => {
   const { commandName } = interaction;
 
   switch (commandName) {
-    case "login":
-      await handleLogin(interaction);
+    case "apilogin":
+      await handleApiLogin(interaction);
       break;
     case "funds":
       await handleFunds(interaction);
