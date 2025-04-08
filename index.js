@@ -194,6 +194,7 @@ async function handleApiLogin(interaction) {
 
     if (response.data.success && response.data.token) {
       // Store token and user data in memory (for this session)
+      console.log(response.data);
       userTokens.set(interaction.user.id, {
         token: response.data.token,
         userId: response.data.userId,
