@@ -316,7 +316,7 @@ async function handleAddFunds(interaction) {
 
   try {
     const response = await axios.post(
-      `${API_BASE_URL}/api/fund-history`,
+      `${API_BASE_URL}/api/funds/history`,
       {
         user_id: userData.userId,
         platinum,
@@ -687,7 +687,7 @@ async function handleHistory(interaction) {
   const limit = interaction.options.getInteger("limit") || 5;
 
   try {
-    const response = await axios.get(`${API_BASE_URL}/api/fund-history`, {
+    const response = await axios.get(`${API_BASE_URL}/api/funds/history`, {
       headers: { Authorization: `Bearer ${userData.token}` },
     });
 
