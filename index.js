@@ -688,9 +688,12 @@ async function handleHistory(interaction) {
   const limit = interaction.options.getInteger("limit") || 5;
 
   try {
-    const response = await axios.get(`${API_BASE_URL}/api/funds/history`, {
-      headers: { Authorization: `Bearer ${userData.token}` },
-    });
+    const response = await axios.get(
+      `${API_BASE_URL}/api/funds/history?campaign_id=${userData.campaignId}`,
+      {
+        headers: { Authorization: `Bearer ${userData.token}` },
+      }
+    );
 
     if (response.data && response.data.length > 0) {
       const fundHistory = response.data.slice(0, limit);
